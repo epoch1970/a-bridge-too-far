@@ -116,6 +116,19 @@ pi@sun:~ $ ip l
 
 pi@sun:~ $ ps waxu | grep -e ^root.*dhcrelay
 root       643  0.0  0.5   8212  5152 ?        Ss   14:38   0:00 /usr/sbin/dhcrelay -pf /var/run/vtep_dhcprelay.pid -q -a -D -iu lanbr -id extbr 172.17.0.2
+
+pi@sun:~ $ sudo iptables -L -n -v
+Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+   45 14598 DROP       udp  --  *      *       0.0.0.0/0            0.0.0.0/0            PHYSDEV match --physdev-in _lnk_0 udp dpts:67:68
+
+Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
+89461   23M DROP       udp  --  *      extbr   0.0.0.0/0            239.31.41.59         PKTTYPE = multicast
+  480  169K DROP       udp  --  *      *       0.0.0.0/0            0.0.0.0/0            PHYSDEV match --physdev-in _lnk_1 udp dpts:67:68
+
+Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
+ pkts bytes target     prot opt in     out     source               destination         
 ```
 
 # Setup the main DHCP server to work with the relay
