@@ -34,7 +34,7 @@ _vif_add(){
 		ip link add name ${if} ${macaddr_opt:-} type vxlan id ${vni} dstport ${port} ${local_opt:-} ${remote_opt:-}
 	;;
 	'veth')
-		ip link add ${if} ${mtu_opt:-} ${macaddr_opt1:-} type veth peer name ${if1} ${mtu_opt:-} ${macaddr_opt2:-}
+		ip link add ${if} ${mtu_opt:-} ${macaddr_opt:-} type veth peer name ${if1} ${mtu_opt:-} ${macaddr_opt1:-}
 	;;
 	esac
 }
