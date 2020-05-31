@@ -39,11 +39,7 @@ vdev_del(){
 }
 
 case "${reason}" in
-	'PREINIT')	vdev_add
-	;;
-	'STOPPED')
-			vdev_del
-	;;
-
+	'PREINIT') vdev_add ;;
+	'STOPPED') vdev_del ;;
 esac
 

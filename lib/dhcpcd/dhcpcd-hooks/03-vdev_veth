@@ -16,16 +16,16 @@ env_check(){
 	done
 }
 vdev_add(){
-        for pair in ${vdev_veth_pairs}; do
+	for pair in ${vdev_veth_pairs}; do
 		[ "${pair%|*}" = "${pair##*|}" ] && continue
-                [ -e "/sys/class/net/${pair%|*}" -a -e "/sys/class/net/${pair##*|}" ] && continue
+		[ -e "/sys/class/net/${pair%|*}" -a -e "/sys/class/net/${pair##*|}" ] && continue
 		env_check "${pair}"
 		_vif_add type="veth" if1="${pair%|*}" if2="${pair##*|}" mtu_opt="${mtu_opt}"
 	done
 }
 vdev_del(){
-        for pair in ${vdev_veth_pairs}; do
-                [ -e "/sys/class/net/${pair%|*}" ] || continue
+	for pair in ${vdev_veth_pairs}; do
+		[ -e "/sys/class/net/${pair%|*}" ] || continue
 		_vif_del if="${pair%|*}"
 	done
 }

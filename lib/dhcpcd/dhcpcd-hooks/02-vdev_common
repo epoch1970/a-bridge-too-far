@@ -1,14 +1,10 @@
 # common functions used by other scripts
-var_set(){
-	local k="${1}" ; shift
-	eval $(echo ${k}=\"$(echo $@ | xargs -0)\")
-}
 args_get(){
-	local k= ; local v=
+	local arg; local k= ; local v=
 	for arg in $@; do
 		case "${arg}" in
 		*=*) # new kv
-			[ -n "${k}" ] && var_set "${k}" "${v}"
+			[ -n "${k}" ] && eval $(echo ${k}=\"$(echo ${v} | xargs -0)\")
 			k="${arg%%=*}"
 			v="${arg#*=}"
 		;;
@@ -16,16 +12,16 @@ args_get(){
 		;;
 		esac
 	done
-	[ -n "${k}" ] && var_set "${k}" "${v}"
+	[ -n "${k}" ] && eval $(echo ${k}=\"$(echo ${v} | xargs -0)\")
 }
 _vif_del(){
 	args_get "${@}"
-        [ -e "/sys/class/net/${if}" ] || return 0
+	[ -e "/sys/class/net/${if}" ] || return 0
 	ip link del ${if}
 }
 _vif_add(){
 	args_get "${@}"
-        [ -e "/sys/class/net/${if}" ] && return 0
+	[ -e "/sys/class/net/${if}" ] && return 0
 	case "${type:-}" in
 	'bridge')
 		ip link add name ${if} ${macaddr_opt:-} type ${type} stp_state ${stp:-0} ${stp_prio_opt:-}
