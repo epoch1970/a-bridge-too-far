@@ -1,28 +1,30 @@
 # Spoke machine setup on a remote site
 
 This is a Pi3b installed with 2020-05-27-raspios-buster-lite-armhf.img
-SSH is enabled, hostname is set to "mercury"
-The machine sits on an isolated site and can reach the LAN over wireless.
-It creates an overlay network that gets bridged to the unused eth0 interface.
-Machines connected via eth0 on this "spoke" machine will get bridged to the LAN.
+- SSH is enabled, hostname is set to "mercury"
+- The machine sits on an isolated site and can reach the LAN over wireless.
+- It creates an overlay network that gets bridged to the unused eth0 interface.
+- Machines connected via eth0 on this "spoke" machine will get bridged to the LAN.
 
-- Update to the latest raspios
+## Update to the latest raspios
+```
 pi@sun:~ $ sudo apt update && sudo apt upgrade -y
 ...
+```
 
-- Install dhcpcd run hook scripts
+## Install dhcpcd run hook scripts
 ```
 pi@mercury:/lib/dhcpcd/dhcpcd-hooks $ ls
 01-test  02-vdev_common  03-vdev_veth      03-vdev_vxlan_uc  04-vtep_overlay        10-wpa_supplicant  30-hostname
 02-dump  03-vdev_bridge  03-vdev_vxlan_mc  04-bridge_iface   10-dhcp_relay_overlay  20-resolv.conf     50-ntp.conf
-``
-- Edit dhcpcd to configure the machine as a "spoke" to the extended network
+```
+
+## Edit dhcpcd.conf to configure the machine as a "spoke" to the extended network
 ```
 pi@mercury:~ $ sudo su
 root@mercury:/home/pi# cd /etc
 root@mercury:/etc# cp dhcpcd.conf dhcpcd.conf_orig
-```
-```
+
 root@mercury:/etc# nano dhcpcd.conf
 
 ...
@@ -45,10 +47,14 @@ env vtep_type=spoke
 env vtep_under=wlan0
 env vtep_link=eth0
 ```
+## Check install
 
 ```
 root@mercury:/etc# reboot
+```
+After rebooting you will see something as this
 
+```
 pi@mercury:~ $ iwconfig 
 eth0      no wireless extensions.
 
