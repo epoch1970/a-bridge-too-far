@@ -35,7 +35,7 @@ pi@sun:/lib/dhcpcd/dhcpcd-hooks $ ls
 02-dump  03-vdev_bridge  03-vdev_vxlan_mc  04-bridge_iface   10-dhcp_relay_overlay  20-resolv.conf     50-ntp.conf
 ```
 
-## Edit dhcpcd to configure the machine as the "hub" to the extended network
+## Edit dhcpcd.conf to configure the machine as the "hub" to the extended network
 ```
 pi@sun:~ $ sudo su
 root@sun:/home/pi# cd /etc
