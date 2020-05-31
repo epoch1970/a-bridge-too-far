@@ -21,7 +21,7 @@ Due to the tunnel, client machines have to set their ethernet MTU size to the MT
 - To avoid configuring this on every machine, the DHCP server on the LAN should be able to differenciate clients coming out of the tunnel from "regular" clients, and instruct them to set their ethernet MTU to 1450.
 - To avoid configuring every host on the DHCP server, a valid option would be to colocate the vxlan endpoint with the DHCP server, make it listen on that interface and use specific options for clients that use it.
 - The alternative option of using a DHCP relay listening on the tunnel and adding its identification is used here:
-  - The node 
+  - The node configured as hub colocates a relay agent listening on the tunnel interface
   - Iptables rules are required to block direct communication between tunneled clients and the DHCP server
   - The DHCP server needs to be configured to identify the relay's circuit-id and adapt its response to clients requests coming via the relay
        
