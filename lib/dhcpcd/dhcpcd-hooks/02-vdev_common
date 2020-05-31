@@ -1,6 +1,6 @@
 # common functions used by other scripts
 args_get(){
-	local arg; local k= ; local v=
+	local arg= ; local k= ; local v=
 	for arg in $@; do
 		case "${arg}" in
 		*=*) # new kv
