@@ -1,0 +1,31 @@
+# Manages bridge member interfaces
+# Triggered by iface lifecylcle events CARRIER|NOCARRIER/DEPARTED/STOP if 
+# $interface has defined the parent_bridge environment value (in dhcpcd.conf)
+# E.g.:
+# interface eth0
+# env parent_bridge=br0
+# ...
+#
+# interface br0
+# ...
+
+[ -n "${parent_bridge:-}" ] || return 0
+
+ifbr_add(){
+	[ -e "/sys/class/net/${parent_bridge}/lower_${interface}" ] && return 0
+	ip link set ${interface} master ${parent_bridge}
+#	[ "${ifwireless}" -eq 1 ] && ip link set ${interface} promisc on
+	# Why do we need this?
+	ip link set ${parent_bridge} down && ip link set ${parent_bridge} up	
+}
+ifbr_del(){
+	[ -e "/sys/class/net/${parent_bridge}" ] || return 0
+	[ -e "/sys/class/net/${parent_bridge}/lower_${interface}" ] && \
+	ip link set ${interface} nomaster
+}
+
+case "${reason}" in
+	'CARRIER') ifbr_add ;;
+	'STOP'|'DEPARTED'|'NOCARRIER') ifbr_del ;;
+esac
+

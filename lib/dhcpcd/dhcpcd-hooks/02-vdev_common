@@ -1,0 +1,63 @@
+# common functions used by other scripts
+var_set(){
+	local k="${1}" ; shift
+	eval $(echo ${k}=\"$(echo $@ | xargs -0)\")
+}
+args_get(){
+	local k= ; local v=
+	for arg in $@; do
+		case "${arg}" in
+		*=*) # new kv
+			[ -n "${k}" ] && var_set "${k}" "${v}"
+			k="${arg%%=*}"
+			v="${arg#*=}"
+		;;
+		*) v="$v ${arg#*=}"
+		;;
+		esac
+	done
+	[ -n "${k}" ] && var_set "${k}" "${v}"
+}
+_vif_del(){
+	args_get "${@}"
+        [ -e "/sys/class/net/${if}" ] || return 0
+	ip link del ${if}
+}
+_vif_add(){
+	args_get "${@}"
+        [ -e "/sys/class/net/${if}" ] && return 0
+	case "${type:-}" in
+	'bridge')
+		ip link add name ${if} ${macaddr_opt:-} type ${type} stp_state ${stp:-0} ${stp_prio_opt:-}
+		ip link set ${if} up
+	;;
+	'vxl_mc')
+		ip link add name ${if} ${macaddr_opt:-} type vxlan id ${vni} dstport ${port} dev ${dev} group ${group}
+	;;
+	'vxl_uc')
+		ip link add name ${if} ${macaddr_opt:-} type vxlan id ${vni} dstport ${port} ${local_opt:-} ${remote_opt:-}
+	;;
+	'veth')
+		ip link add ${if} ${mtu_opt:-} ${macaddr_opt1:-} type veth peer name ${if1} ${mtu_opt:-} ${macaddr_opt2:-}
+	;;
+	esac
+}
+_macaddr_get(){
+	local m=; local b
+	for b in $(cat /proc/device-tree/system/linux,serial | xxd -s +5 -ps -c 1); do
+		m="${m}:${b}"
+	done
+	args_get "${@}"
+	case "${type:-}" in
+	'sn_low')
+		b="$(printf %02x $((0x020000 + $(ls -1 /sys/class/net | wc -l) + ${pad:-0})) )"
+		local b1="${b%????}"; local b23="${b#??}"
+		printf %02x:%02x:%02x%s 0x${b1} 0x${b23%??} 0x${b23#??} ${m}
+	;;
+	'sn_high')
+		b="$(printf %02x $((0xfeffff - $(ls -1 /sys/class/net | wc -l) - ${pad:-0})) )"
+		local b1="${b%????}"; local b23="${b#??}"
+		printf %02x:%02x:%02x%s 0x${b1} 0x${b23%??} 0x${b23#??} ${m}
+	;;
+	esac
+}

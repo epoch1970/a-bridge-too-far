@@ -1,0 +1,49 @@
+# Creates/removes unicast vxlan devices
+# Triggered by dhcpcd lifecycle events PREINIT|STOPPED 
+# Requires global environment variable vdev_uc_vxlans (list)
+# Optional local ip address followed by optional remote ip address
+# Additional options VNI (VXLAN ID), listening port, with defaults. 
+# If using more than one device, specify at minimum the VNI of each vxlan.
+# E.g.:
+# env vdev_uc_vxlans=vxlan0 vxlan1
+# env vxlan0_peers=192.168.38.1|192.168.38.2
+# env vxlan1_peers=10.20.30.40
+# env vxlan1_vni=123
+# env vxlan1_port=8472
+# ...
+
+[ -n "${vdev_uc_vxlans:-}" ] || return 0
+
+env_check(){
+	peers="$(eval echo \${${1}_peers:-})"
+	local_opt= ; remote_opt=
+	[ -n "${peers%|*}" ] && local_opt="local ${peers%|*}"
+	[ -n "${peers##*|}" -a "${peers##*|}" != "${peers%|*}" ] && remote_opt="remote ${peers##*|}"
+	port="$(eval echo \${${1}_port:-})"
+	port="${port:-4789}"
+	vni="$(eval echo \${${1}_vni:-})"
+	vni="${vni:-314159}"
+}
+vdev_add(){
+	for vxlan in ${vdev_uc_vxlans}; do
+		[ -e "/sys/class/net/${vxlan}" ] && continue
+		env_check ${vxlan}
+		_vif_add type="vxl_uc" if="${vxlan}" vni="${vni}" port="${port}" local_opt="${local_opt}" remote_opt="${remote_opt}"
+	done
+}
+vdev_del(){
+	for vxlan in ${vdev_uc_vxlans}; do
+		[ -e "/sys/class/net/${vxlan}" ] || continue
+		_vif_del if="${vxlan}"
+	done
+}
+
+case "${reason}" in
+	'PREINIT')	vdev_add
+	;;
+	'STOPPED')
+			vdev_del
+	;;
+
+esac
+

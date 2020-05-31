@@ -1,0 +1,40 @@
+# Creates/removes bridge devices and uplinks
+# Triggered by dhcpcd lifecycle events PREINIT|STOPPED 
+# Requires global environment variable vdev_bridges (list)
+# Optional STP on, priority with random low default priority
+# E.g.:
+# env vdev_bridges=br0 br1 br2
+# env br1_stp=on
+# env br2_stp=on
+# env br2_stp_prio=123
+
+[ -n "${vdev_bridges:-}" ] || return 0
+
+env_check(){
+	stp="$(eval echo \${${1}_stp:-0})"
+	[ "${stp}" != 'on' ] && stp=0 && return
+	stp=1
+	stp_prio="$(eval echo \${${1}_stp_prio:-})"
+	[ -n "${stp_prio}" ] && stp_prio_opt="priority ${stp_prio}" && return 0
+	# Low stp prio: from 32768+4096 to 61440, from below default to min. possible 
+	stp_prio="$(shuf -i 0-7 -n 1)"
+	stp_prio_opt="priority $(( 36864 + stp_prio * 4096 ))"
+}
+vdev_add(){
+	for bridge in ${vdev_bridges}; do
+		[ -e "/sys/class/net/${bridge}" ] && continue
+		env_check ${bridge}
+		_vif_add type='bridge' if="${bridge}" stp="${stp}" stp_prio_opt="${stp_prio_opt}"
+	done
+}
+vdev_del(){
+	for bridge in ${vdev_bridges}; do
+		[ -e "/sys/class/net/${bridge}" ] || continue
+		_vif_del if="${bridge}"
+	done
+}
+
+case "${reason}" in
+	'PREINIT'|'CARRIER') vdev_add ;;
+	'STOPPED') vdev_del ;;
+esac

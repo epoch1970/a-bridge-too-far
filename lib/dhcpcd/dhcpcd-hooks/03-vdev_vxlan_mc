@@ -1,0 +1,49 @@
+# Creates/removes multicast vxlan devices
+# Triggered by dhcpcd lifecycle events PREINIT|STOPPED 
+# Requires global environment variable vdev_mc_vxlans (list)
+# Requires parent device name
+# Additional options VNI (VXLAN ID), listening port, multicast address with defaults. 
+# If using more than one device, specify at minimum the VNI of each vxlan.
+# E.g.:
+# env vdev_mc_vxlans=vxlan0 vxlan1
+# env vxlan0_uplink=eth0
+# env vxlan1_uplink=eth0
+# env vxlan1_vni=123
+# env vxlan1_mc_ipv4=224.1.2.3
+# ...
+
+[ -n "${vdev_mc_vxlans:-}" ] || return 0
+
+env_check(){
+	uplink="$(eval echo \${${1}_uplink:-})"
+	[ -n "${uplink:-}" ] || return 1
+	port="$(eval echo \${${1}_port:-})"
+	port="${port:-4789}"
+	vni="$(eval echo \${${1}_vni:-})"
+	vni="${vni:-314159}"
+	mc_ipv4="$(eval echo \${${1}_mc_ipv4:-})"
+	mc_ipv4="${mc_ipv4:-239.31.41.59}"
+}
+vdev_add(){
+	for vxlan in ${vdev_mc_vxlans}; do
+		[ -e "/sys/class/net/${vxlan}" ] && continue
+		env_check ${vxlan} || continue
+		_vif_add type="vxl_mc if="${vxlan}" vni="${vni}" port="${port}" dev="${uplink}" group="${mc_ipv4}" 
+	done
+}
+vdev_del(){
+	for vxlan in ${vdev_mc_vxlans}; do
+		[ -e "/sys/class/net/${vxlan}" ] || continue
+		_vif_del if="${vxlan}"
+	done
+}
+
+case "${reason}" in
+	'PREINIT')	vdev_add
+	;;
+	'STOPPED')
+			vdev_del
+	;;
+
+esac
+

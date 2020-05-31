@@ -1,0 +1,36 @@
+# Creates/removes veth pairs
+# Triggered by dhcpcd lifecycle events PREINIT|STOPPED 
+# Requires global environment variable vdev_veth_pairs (list)
+# Optional mtu size, for the pair
+# E.g.:
+# env vdev_veth_pairs=ve0|ve1 foo|bar
+# env foo_mtu=1482
+# ...
+[ -n "${vdev_veth_pairs:-}" ] || return 0
+
+env_check(){
+	mtu_opt=
+	for opt in "${1%|*}" "${1##*|}"; do
+		mtu="$(eval echo \${${opt}_mtu:-})"
+		[ -n "${mtu:-}" ] && mtu_opt="mtu ${mtu}" && return
+	done
+}
+vdev_add(){
+        for pair in ${vdev_veth_pairs}; do
+		[ "${pair%|*}" = "${pair##*|}" ] && continue
+                [ -e "/sys/class/net/${pair%|*}" -a -e "/sys/class/net/${pair##*|}" ] && continue
+		env_check "${pair}"
+		_vif_add type="veth" if1="${pair%|*}" if2="${pair##*|}" mtu_opt="${mtu_opt}"
+	done
+}
+vdev_del(){
+        for pair in ${vdev_veth_pairs}; do
+                [ -e "/sys/class/net/${pair%|*}" ] || continue
+		_vif_del if="${pair%|*}"
+	done
+}
+
+case "${reason}" in
+	'PREINIT') vdev_add ;;
+	'STOPPED') vdev_del ;;
+esac

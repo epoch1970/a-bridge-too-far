@@ -1,0 +1,87 @@
+# Vxlan Tunnel End Point (VTEP) configuration
+# env vdev_vtep=br1
+# env vtep_type=hub # env vtep_type=spoke
+# env vtep_under=br0
+# env vtep_link=_lnk_ # env vtep_link=eth0
+# IPv4 multicast vxlan overlay, default parameters below
+# Change all members of the overlay network if not using defaults
+# env vtep_over=vxl0
+# env vtep_vx_vni=314159
+# env vtep_vx_port=4789
+# env vtep_vx_mc_ipv4=239.31.41.59
+
+[ -n "${vdev_vtep:-}" -a -n ${interface:-} \
+  -a "${interface}" = "${vtep_under:-}" ] || return 0
+
+env_check(){
+	vtep_over="${vtep_over:-vxl0}"
+	[ -n "${vtep_over:-}" -a -n "${vtep_under:-}" \
+	  -a "${vtep_over:-}" != "${vtep_under:-}" ] || return 1
+	vtep_link="${vtep_link:-_lnk_}"
+	vtep_vx_vni="${vtep_vx_nvi:-314159}"
+	vtep_vx_port="${vtep_vx_port:-4789}"
+	vtep_vx_mc_ipv4="${vtep_vx_mc_ipv4:-239.31.41.59}"
+}
+vtep_add(){
+	env_check || return 0
+	case "${vtep_type:-}" in
+		'hub')
+			iptables -C FORWARD -o ${vdev_vtep} -p udp -d ${vtep_vx_mc_ipv4} -m pkttype --pkt-type multicast -j DROP || \
+			iptables -I FORWARD 1 -o ${vdev_vtep} -p udp -d ${vtep_vx_mc_ipv4} -m pkttype --pkt-type multicast -j DROP
+
+			iptables -C INPUT -m physdev --physdev-in ${vtep_link}0 -p udp --dport 67:68 -j DROP || \
+			iptables -A INPUT -m physdev --physdev-in ${vtep_link}0 -p udp --dport 67:68 -j DROP
+			iptables -C FORWARD -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP || \
+			iptables -A FORWARD -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP
+
+			[ -e "/sys/class/net/${vdev_vtep}" ] || _vif_add type="bridge" if="${vdev_vtep}"
+			if [ ! -e "/sys/class/net/${vtep_over}" ]; then
+				macaddr_opt="address $(_macaddr_get type=sn_low)"
+				_vif_add type="vxl_mc" if="${vtep_over}" vni="${vtep_vx_vni}" port="${vtep_vx_port}" dev="${vtep_under}" group="${vtep_vx_mc_ipv4}" macaddr_opt="${macaddr_opt}"
+			fi
+			if [ ! -e "/sys/class/net/${vtep_link}0" ]; then
+				macaddr_opt1="address $(_macaddr_get type=sn_high)"
+				macaddr_opt2="address $(_macaddr_get type=sn_high pad=1)"
+				_vif_add type="veth" if="${vtep_link}0" if1="${vtep_link}1" macaddr_opt1="${macaddr_opt1}" macaddr_opt2="${macaddr_opt2}"
+			fi
+			ip link set "${vtep_over}"  up master "${vdev_vtep}"
+			ip link set "${vtep_link}1" up master "${vdev_vtep}"
+			ip link set "${vtep_link}0" up master "${vtep_under}"
+		;;
+		'spoke')
+			[ -e "/sys/class/net/${vdev_vtep}" ] || _vif_add type="bridge" if="${vdev_vtep}"
+			if [ ! -e "/sys/class/net/${vtep_over}" ]; then
+				macaddr_opt="address $(_macaddr_get type=sn_low)"
+				_vif_add type="vxl_mc" if="${vtep_over}" vni="${vtep_vx_vni}" port="${vtep_vx_port}" dev="${vtep_under}" group="${vtep_vx_mc_ipv4}" macaddr_opt="${macaddr_opt}"
+			fi
+			ip link set "${vtep_over}" up master "${vdev_vtep}"
+			ip link set "${vtep_link}" up mtu 1450 master "${vdev_vtep}"
+		;;
+	esac
+}
+vtep_del(){
+	case "${vtep_type:-}" in
+		'hub')
+			[ -e "/sys/class/net/${vtep_over}" ] && _vif_del if="${vtep_over}"
+			[ -e "/sys/class/net/${vtep_link}0" ] && _vif_del if="${vtep_link}0" 
+			[ -e "/sys/class/net/${vdev_vtep}" ] && _vif_del if="${vdev_vtep}"
+			iptables -C FORWARD -o ${vdev_vtep} -p udp -d ${vtep_vx_mc_ipv4} -m pkttype --pkt-type multicast -j DROP && \
+			iptables -D FORWARD -o ${vdev_vtep} -p udp -d ${vtep_vx_mc_ipv4} -m pkttype --pkt-type multicast -j DROP
+
+			iptables -C INPUT -m physdev --physdev-in ${vtep_link}0 -p udp --dport 67:68 -j DROP && \
+			iptables -D INPUT -m physdev --physdev-in ${vtep_link}0 -p udp --dport 67:68 -j DROP
+			iptables -C FORWARD -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP && \
+			iptables -D FORWARD -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP
+		;;
+		'spoke')
+			ip link set "${vtep_link}" down nomaster
+			[ -e "/sys/class/net/${vtep_over}" ] && _vif_del if="${vtep_over}"
+			[ -e "/sys/class/net/${vdev_vtep}" ] && _vif_del if="${vdev_vtep}"
+		;;
+	esac
+}
+
+case "${reason}" in
+	'BOUND'|'STATIC') vtep_add ;;
+	'STOP'|'DEPARTED'|'NOCARRIER'|'NAK'|'EXPIRE') vtep_del ;;
+esac
