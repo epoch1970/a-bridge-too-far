@@ -21,12 +21,12 @@ Designed and tested to work with raspios and dhcpcd using Raspberry Pi 3B and Ra
        - The DHCP server needs to be configured to identify the relay's circuit-id and adapt its response to clients requests coming via the relay
        
 ## Project files
-The bridged endpoint on the ethernet LAN side is called a "hub", the wireless endpoint bridging its ethernet interface for remote clients is called a "spoke".
+The bridged endpoint on the ethernet LAN side is called a "hub", the wireless endpoint bridging its ethernet interface for remote clients is called a "spoke". In this repository:
 
- - Dhcpcd config files: hub profile, spoke profile
- - Dhcpcd run hooks: management for various virtual network devices, dhcp relay lifecycle, iptables configuration
- 
- ## Install pages
-  - For the "hub" node
-  - For a first "spoke" node
+ - Dhcpcd config files:
+   - hub profile, spoke profile
+   - dhcpcd run hooks: management for various virtual network devices, dhcp relay lifecycle, iptables configuration
+ - Install pages:
+   - For the "hub" node
+   - For a first "spoke" node (more would be identical)
   
