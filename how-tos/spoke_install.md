@@ -8,51 +8,26 @@ This is a Pi3b installed with 2020-05-27-raspios-buster-lite-armhf.img
 
 ## Update to the latest raspios
 ```
-pi@sun:~ $ sudo apt update && sudo apt upgrade -y
-...
+pi@mercury:~ $ sudo apt update && sudo apt upgrade -y
 ```
 
 ## Install dhcpcd run hook scripts
 ```
 pi@mercury:/lib/dhcpcd/dhcpcd-hooks $ ls
-01-test  02-vdev_common  03-vdev_veth      03-vdev_vxlan_uc  04-vtep_overlay        10-wpa_supplicant  30-hostname
-02-dump  03-vdev_bridge  03-vdev_vxlan_mc  04-bridge_iface   10-dhcp_relay_overlay  20-resolv.conf     50-ntp.conf
+01-test  02-vdev_common  03-vdev_veth	   03-vdev_vxlan_uc  04-vtep_overlay	20-resolv.conf	50-ntp.conf
+02-dump  03-vdev_bridge  03-vdev_vxlan_mc  04-bridge_iface   10-wpa_supplicant	30-hostname
 ```
 
 ## Edit dhcpcd.conf to configure the machine as a "spoke" to the extended network
 ```
-pi@mercury:~ $ sudo su
-root@mercury:/home/pi# cd /etc
-root@mercury:/etc# cp dhcpcd.conf dhcpcd.conf_orig
-
-root@mercury:/etc# nano dhcpcd.conf
-
-...
-#interface eth0
-#fallback static_eth0
-
-# See VTEP config below
-denyinterfaces vxl0 extbr eth0
-
-# Wireless LAN client interface, DHCP configuration
-interface wlan0
-
-# Vxlan Tunnel End Point (VTEP) configuration
-# Processed by dhcpcd run hook "04-vtep_overlay"
-# Type "spoke" creates additional interface vxl0
-# To allow clients on the remote site to actually reach the network, eth0 is linked into the VTEP
-# See the run hook for available options
-env vdev_vtep=extbr
-env vtep_type=spoke
-env vtep_under=wlan0
-env vtep_link=eth0
+pi@mercury:~ $ sudo cp spoke_dhcpcd.conf /etc/dhcpcd.conf
 ```
+
 ## Check install
-
 ```
-root@mercury:/etc# reboot
+pi@mercury:~ $ sudo reboot
 ```
-After rebooting you will see something as this
+After rebooting you will see something as this:
 
 ```
 pi@mercury:~ $ iwconfig 
@@ -84,4 +59,10 @@ pi@mercury:~ $ ip l
     link/ether 02:00:04:21:22:23 brd ff:ff:ff:ff:ff:ff
 5: vxl0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc noqueue master extbr state UNKNOWN mode DEFAULT group default qlen 1000
     link/ether 02:00:04:21:22:23 brd ff:ff:ff:ff:ff:ff
+
+pi@mercury:~ $ ip -d l show vxl0
+5: vxl0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc noqueue master extbr state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ether 02:00:04:21:22:23 brd ff:ff:ff:ff:ff:ff promiscuity 1 minmtu 68 maxmtu 65535 
+    vxlan id 314159 group 239.31.41.59 dev wlan0 srcport 0 0 dstport 4789 ttl auto ageing 300 udpcsum noudp6zerocsumtx noudp6zerocsumrx 
+    bridge_slave state forwarding priority 32 cost 100 hairpin off guard off root_block off fastleave off learning on flood on port_id 0x8001 port_no 0x1 designated_port 32769 designated_cost 0 designated_bridge 8000.2:0:4:21:22:23 designated_root 8000.2:0:4:21:22:23 hold_timer    0.00 message_age_timer    0.00 forward_delay_timer    0.00 topology_change_ack 0 config_pending 0 proxy_arp off proxy_arp_wifi off mcast_router 1 mcast_fast_leave off mcast_flood on neigh_suppress off group_fwd_mask 0 group_fwd_mask_str 0x0 vlan_tunnel off isolated off addrgenmode eui64 numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535 
 ```

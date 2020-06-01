@@ -26,13 +26,12 @@ vtep_add(){
 	env_check || return 0
 	case "${vtep_type:-}" in
 		'hub')
-			iptables -C FORWARD -o ${vdev_vtep} -p udp -d ${vtep_vx_mc_ipv4} -m pkttype --pkt-type multicast -j DROP || \
-			iptables -I FORWARD 1 -o ${vdev_vtep} -p udp -d ${vtep_vx_mc_ipv4} -m pkttype --pkt-type multicast -j DROP
-
-			iptables -C INPUT -m physdev --physdev-in ${vtep_link}0 -p udp --dport 67:68 -j DROP || \
-			iptables -A INPUT -m physdev --physdev-in ${vtep_link}0 -p udp --dport 67:68 -j DROP
+			iptables -C INPUT -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP || \
+			iptables -A INPUT -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP
 			iptables -C FORWARD -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP || \
 			iptables -A FORWARD -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP
+			iptables -C FORWARD -m physdev --physdev-out ${vtep_link}1 -p udp --dport 67:68 -j DROP || \
+			iptables -A FORWARD -m physdev --physdev-out ${vtep_link}1 -p udp --dport 67:68 -j DROP
 
 			[ -e "/sys/class/net/${vdev_vtep}" ] || _vif_add type="bridge" if="${vdev_vtep}"
 			if [ ! -e "/sys/class/net/${vtep_over}" ]; then
@@ -44,7 +43,8 @@ vtep_add(){
 				macaddr_opt1="address $(_macaddr_get type=sn_high pad=1)"
 				_vif_add type="veth" if="${vtep_link}0" if1="${vtep_link}1" macaddr_opt="${macaddr_opt1}" macaddr_opt1="${macaddr_opt2}"
 			fi
-			ip link set "${vtep_over}"  up master "${vdev_vtep}"
+			ip link set "${vtep_over}" master "${vdev_vtep}"
+			ip link set "${vtep_over}" up type bridge_slave mcast_flood off
 			ip link set "${vtep_link}1" up master "${vdev_vtep}"
 			ip link set "${vtep_link}0" up master "${vtep_under}"
 		;;
@@ -65,13 +65,12 @@ vtep_del(){
 			[ -e "/sys/class/net/${vtep_over}" ] && _vif_del if="${vtep_over}"
 			[ -e "/sys/class/net/${vtep_link}0" ] && _vif_del if="${vtep_link}0" 
 			[ -e "/sys/class/net/${vdev_vtep}" ] && _vif_del if="${vdev_vtep}"
-			iptables -C FORWARD -o ${vdev_vtep} -p udp -d ${vtep_vx_mc_ipv4} -m pkttype --pkt-type multicast -j DROP && \
-			iptables -D FORWARD -o ${vdev_vtep} -p udp -d ${vtep_vx_mc_ipv4} -m pkttype --pkt-type multicast -j DROP
-
-			iptables -C INPUT -m physdev --physdev-in ${vtep_link}0 -p udp --dport 67:68 -j DROP && \
-			iptables -D INPUT -m physdev --physdev-in ${vtep_link}0 -p udp --dport 67:68 -j DROP
+			iptables -C INPUT -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP && \
+			iptables -D INPUT -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP
 			iptables -C FORWARD -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP && \
 			iptables -D FORWARD -m physdev --physdev-in ${vtep_link}1 -p udp --dport 67:68 -j DROP
+			iptables -C FORWARD -m physdev --physdev-out ${vtep_link}1 -p udp --dport 67:68 -j DROP && \
+			iptables -D FORWARD -m physdev --physdev-out ${vtep_link}1 -p udp --dport 67:68 -j DROP
 		;;
 		'spoke')
 			ip link set "${vtep_link}" down nomaster

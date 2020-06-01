@@ -9,93 +9,32 @@ This machine sits on the LAN, where a wireless AP and a DHCP server serve client
 ## Update to the latest raspios
 ```
 pi@sun:~ $ sudo apt update && sudo apt upgrade -y
-...
 ```
+## Install dnsmasq to run DHCP and DNS services for the LAN on the hub node
 
-## Install a DHCP relay agent
-```
-pi@sun:~ $ sudo DEBIAN_FRONTEND=noninteractive apt install -y isc-dhcp-relay
-...
-The following NEW packages will be installed:
-  isc-dhcp-relay libirs-export161 libisccfg-export163
-0 upgraded, 3 newly installed, 0 to remove and 0 not upgraded.
-...
-```
-Disable the service as it is run dynamically by dhcpcd:
-```
-pi@sun:~ $ sudo systemctl disable isc-dhcp-relay
-isc-dhcp-relay.service is not a native service, redirecting to systemd-sysv-install.
-Executing: /lib/systemd/systemd-sysv-install disable isc-dhcp-relay
-```
+TODO
 
 ## Install dhcpcd run hook scripts
 ```
 pi@sun:/lib/dhcpcd/dhcpcd-hooks $ ls
-01-test  02-vdev_common  03-vdev_veth      03-vdev_vxlan_uc  04-vtep_overlay        10-wpa_supplicant  30-hostname
-02-dump  03-vdev_bridge  03-vdev_vxlan_mc  04-bridge_iface   10-dhcp_relay_overlay  20-resolv.conf     50-ntp.conf
+01-test  02-vdev_common  03-vdev_veth	   03-vdev_vxlan_uc  04-vtep_overlay	20-resolv.conf	50-ntp.conf
+02-dump  03-vdev_bridge  03-vdev_vxlan_mc  04-bridge_iface   10-wpa_supplicant	30-hostname
 ```
 
 ## Edit dhcpcd.conf to configure the machine as the "hub" to the extended network
 ```
-pi@sun:~ $ sudo su
-root@sun:/home/pi# cd /etc
-root@sun:/etc# cp dhcpcd.conf dhcpcd.conf_orig
-
-root@sun:/etc# nano dhcpcd.conf
-...
-#interface eth0
-#fallback static_eth0
-
-# See VTEP config below
-denyinterfaces vxl0 _lnk_*
-
-# DHCP relay on the hub for automagic client MTU setup - processed by run hook "10-dhcp_relay_overlay"
-# If you want to disable the dhcp relay, enable the following
-#nohook dhcp_relay_overlay
-# Enter the IPv4 address of the DHCP server to relay to 
-env dhcp_server_ipv4=172.17.0.2
-
-# Bridges to manage - processed by run hook "03-vdev_bridge"
-# See the run hook for available options
-env vdev_bridges=lanbr
-
-# Vxlan Tunnel End Point (VTEP) configuration
-# Processed by dhcpcd run hook "04-vtep_overlay"
-# Type "hub" creates additional interfaces vxl0 _lnk_0 _lnk_1
-# See the run hook for available options
-env vdev_vtep=extbr
-env vtep_type=hub
-env vtep_under=lanbr
-
-# LAN bridge device lanbr, DHCP configuration
-interface lanbr
-
-# VTEP bridge device extbr, static IP address required to relay remote DHCP
-# client requests to the DHCP server on the LAN.
-# Use a free IP address in the LAN network. Must not take priority over the 
-# LAN bridge, set a high metric FIXME CHECK THAT
-# Processed by dhcpcd run hook "04-bridge_iface"
-interface extbr
-metric 314159
-static ip_address=172.17.254.254/16
-
-# No IP configuration for bridge member interfaces
-# Processed by dhcpcd run hook "04-bridge_iface"
-interface eth0
-env parent_bridge=lanbr
-noipv4
-noipv6
-noipv4ll
+pi@sun:~ $ sudo cp hub_dhcpcd.conf /etc/dhcpcd.conf
 ```
+
 ## Check install
 ```
-root@sun:/etc# reboot
+pi@sun:~ $ sudo reboot
 ```
-After rebooting you will see something as this
+After rebooting you will see something as this:
 ```
 pi@sun:~ $ ip r
-default via 172.17.0.1 dev lanbr proto dhcp src 172.17.255.10 metric 203 
-172.17.0.0/16 dev lanbr proto dhcp scope link src 172.17.255.10 metric 203 
+default via 172.17.0.1 dev lanbr src 172.17.0.2 metric 204 
+172.17.0.0/16 dev lanbr proto dhcp scope link src 172.17.0.2 metric 204 
 172.17.0.0/16 dev extbr proto dhcp scope link src 172.17.254.254 metric 314159 
 
 pi@sun:~ $ ip l
@@ -114,40 +53,39 @@ pi@sun:~ $ ip l
 7: _lnk_0@_lnk_1: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue master lanbr state UP mode DEFAULT group default qlen 1000
     link/ether fe:ff:fa:01:02:03 brd ff:ff:ff:ff:ff:ff
 
-pi@sun:~ $ ps waxu | grep -e ^root.*dhcrelay
-root       643  0.0  0.5   8212  5152 ?        Ss   14:38   0:00 /usr/sbin/dhcrelay -pf /var/run/vtep_dhcprelay.pid -q -a -D -iu lanbr -id extbr 172.17.0.2
+pi@sun:~ $ ip -d l show vxl0
+5: vxl0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1450 qdisc noqueue master extbr state UNKNOWN mode DEFAULT group default qlen 1000
+    link/ether 02:00:04:01:02:03 brd ff:ff:ff:ff:ff:ff promiscuity 1 minmtu 68 maxmtu 65535 
+    vxlan id 314159 group 239.31.41.59 dev lanbr srcport 0 0 dstport 4789 ttl auto ageing 300 udpcsum noudp6zerocsumtx noudp6zerocsumrx 
+    bridge_slave state forwarding priority 32 cost 100 hairpin off guard off root_block off fastleave off learning on flood on port_id 0x8001 port_no 0x1 designated_port 32769 designated_cost 0 designated_bridge 8000.2:0:5:1:2:3 designated_root 8000.2:0:5:1:2:3 hold_timer    0.00 message_age_timer    0.00 forward_delay_timer    0.00 topology_change_ack 0 config_pending 0 proxy_arp off proxy_arp_wifi off mcast_router 1 mcast_fast_leave off mcast_flood off neigh_suppress off group_fwd_mask 0 group_fwd_mask_str 0x0 vlan_tunnel off isolated off addrgenmode eui64 numtxqueues 1 numrxqueues 1 gso_max_size 65536 gso_max_segs 65535 
 
 pi@sun:~ $ sudo iptables -L -n -v
 Chain INPUT (policy ACCEPT 0 packets, 0 bytes)
  pkts bytes target     prot opt in     out     source               destination         
-   45 14598 DROP       udp  --  *      *       0.0.0.0/0            0.0.0.0/0            PHYSDEV match --physdev-in _lnk_0 udp dpts:67:68
+    5  1712 DROP       udp  --  *      *       0.0.0.0/0            0.0.0.0/0            PHYSDEV match --physdev-in _lnk_1 udp dpts:67:68
 
 Chain FORWARD (policy ACCEPT 0 packets, 0 bytes)
  pkts bytes target     prot opt in     out     source               destination         
-89461   23M DROP       udp  --  *      extbr   0.0.0.0/0            239.31.41.59         PKTTYPE = multicast
-  480  169K DROP       udp  --  *      *       0.0.0.0/0            0.0.0.0/0            PHYSDEV match --physdev-in _lnk_1 udp dpts:67:68
+   11  3702 DROP       udp  --  *      *       0.0.0.0/0            0.0.0.0/0            PHYSDEV match --physdev-in _lnk_1 udp dpts:67:68
+    9  2952 DROP       udp  --  *      *       0.0.0.0/0            0.0.0.0/0            PHYSDEV match --physdev-out _lnk_1 udp dpts:67:68
 
 Chain OUTPUT (policy ACCEPT 0 packets, 0 bytes)
  pkts bytes target     prot opt in     out     source               destination         
 ```
 
-# Setup the main DHCP server to work with the relay
+# Setup the main DHCP server to serve remote clients
 
-In this case dnsmasq runs the DHCP service On the LAN.
+In this case dnsmasq runs the DHCP service on the LAN. 
 
-This is the extra file I dropped in the dnsmasq configuration directory to make it aware of the presence of the DHCP relay, try and force the appropriate MTU setting for clients in satellite sites.
+This is the extra file I dropped in the dnsmasq configuration directory to make it aware of the tunnel bridge interface:
 
-YMMV according to your DHCP server. The circuit-id presented by dhcrelay is the incoming lease request interface name, i.e. the VTEP interface "extbr" configured in the hub machine.
 ```
 me@router:/etc/dnsmasq.d# cat abtf.conf 
 # Overlay network support
 # Clients in spoke sites must set their interface to MTU 1450 (native MTU - 50)
-# Lease requests transmitted by the relay on the hub node include the name of the receiving interface.
-# These options map the interface name (extbr) to a dnsmasq tag, and ask clients to set their interface MTU.
-# Some clients do not comply, force the value locally. (Or force all partners to use MTU 1450) 
-
-# Lease request relayed from interface "extbr" -> tag
-dhcp-circuitid=set:spoke,extbr
-# Tag -> ask client to configure its ethernet MTU (DHCP option 26)
-dhcp-option-force=tag:spoke,26,1450
+# These options make dnsmasq also listen on the tunnel interface ...
+interface=extbr
+# ... and ask clients to set their interface MTU.
+dhcp-option-force=tag:extbr,26,1450
+# Some clients do not comply, force the value locally in this case. (Or force all partners to use MTU 1450) 
 ```
