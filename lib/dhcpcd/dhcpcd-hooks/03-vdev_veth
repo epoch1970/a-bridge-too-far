@@ -20,7 +20,7 @@ vdev_add(){
 		[ "${pair%|*}" = "${pair##*|}" ] && continue
 		[ -e "/sys/class/net/${pair%|*}" -a -e "/sys/class/net/${pair##*|}" ] && continue
 		env_check "${pair}"
-		_vif_add type="veth" if1="${pair%|*}" if2="${pair##*|}" mtu_opt="${mtu_opt}"
+		_vif_add type="veth" if="${pair%|*}" if1="${pair##*|}" mtu_opt="${mtu_opt}"
 	done
 }
 vdev_del(){
