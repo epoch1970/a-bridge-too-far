@@ -10,7 +10,7 @@
 # env vtep_vx_port=4789
 # env vtep_vx_mc_ipv4=239.31.41.59
 
-[ -n "${vdev_vtep:-}" -a -n ${interface:-} \
+[ -n "${vdev_vtep:-}" -a -n "${interface:-}" \
   -a "${interface}" = "${vtep_under:-}" ] || return 0
 
 env_check(){
@@ -41,7 +41,7 @@ vtep_add(){
 			if [ ! -e "/sys/class/net/${vtep_link}0" ]; then
 				macaddr_opt="address $(_macaddr_get type=sn_high)"
 				macaddr_opt1="address $(_macaddr_get type=sn_high pad=1)"
-				_vif_add type="veth" if="${vtep_link}0" if1="${vtep_link}1" macaddr_opt="${macaddr_opt1}" macaddr_opt1="${macaddr_opt2}"
+				_vif_add type="veth" if="${vtep_link}0" if1="${vtep_link}1" macaddr_opt="${macaddr_opt}" macaddr_opt1="${macaddr_opt1}"
 			fi
 			ip link set "${vtep_over}" master "${vdev_vtep}"
 			ip link set "${vtep_over}" up type bridge_slave mcast_flood off
