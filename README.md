@@ -46,7 +46,7 @@ Designed and tested to work with raspios using Raspberry Pi 3B. Built upon softw
        - Iptables rules are required to block requests from going out of the tunnel bridge interface into the LAN bridge interface, as the server might then reply to the "echo" on the LAN with a regular lease
     - Using a DHCP relay listening on the tunnel interface and adding its identification (circuit-id) is a possible alternative in order to identify the source of the request
     - Using a DHCP server in each remote site is a possible alternative
-  - Testing involved 1 hub, 3 spokes with 1 or 2 client each. The AP was either running off the built-in wireless interface in a Raspberry Pi 3b, or a separate hardware AP. Testing focused on reliability and stability, mostly by playing audio synchronised across remote clients (with Logitech Media Server on the LAN)
+  - Testing involved 1 hub, 3 spokes with 1 or 2 clients each. The AP was either running off the built-in wireless interface in a Raspberry Pi 3b, or a separate hardware AP. Testing focused on reliability and stability, mostly by playing audio synchronised across remote clients (with Logitech Media Server on the LAN)
 
 ## Project files
  - Dhcpcd config files: hub profile, spoke profile
