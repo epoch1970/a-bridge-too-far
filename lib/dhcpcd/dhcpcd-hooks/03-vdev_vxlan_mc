@@ -28,7 +28,7 @@ vdev_add(){
 	for vxlan in ${vdev_mc_vxlans}; do
 		[ -e "/sys/class/net/${vxlan}" ] && continue
 		env_check ${vxlan} || continue
-		_vif_add type="vxl_mc if="${vxlan}" vni="${vni}" port="${port}" dev="${uplink}" group="${mc_ipv4}" 
+		_vif_add type="vxl_mc" if="${vxlan}" vni="${vni}" port="${port}" dev="${uplink}" group="${mc_ipv4}" 
 	done
 }
 vdev_del(){
