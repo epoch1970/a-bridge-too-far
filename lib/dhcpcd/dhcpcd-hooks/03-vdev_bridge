@@ -1,4 +1,4 @@
-# Creates/removes bridge devices and uplinks
+# Creates/removes bridge devices
 # Triggered by dhcpcd lifecycle events PREINIT|STOPPED 
 # Requires global environment variable vdev_bridges (list)
 # Optional STP on, priority with random low default priority
