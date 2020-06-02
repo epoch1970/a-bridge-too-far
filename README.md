@@ -39,8 +39,8 @@ Designed and tested to work with raspios using Raspberry Pi 3B. Built upon softw
      - The project presents an all-in-one "hub", acting as bridged AP and bridged VTEP. Its location should be optimized so that "spokes" receive the best possible wireless signal
      - Running a separate Access Point is a possible alternative
   - Multicast vxlan was preferred to unicast as IP address endpoint management is not a concern with multicast.
-  - Due to the extra headers required for the tunnel, remote machines have to set their TCP MTU size to the playload size of the tunnel, here 1450 instead of 1500.
-    - To avoid configuring MTU manually on every remote machine, the DHCP server on the LAN can instruct them to set their ethernet MTU via DHCP option 26. For this the DHCP server must be able to differenciate "regular" clients (MTU 1500) from clients coming out of the tunnel (MTU 1450.)
+  - Due to the extra headers required for the tunnel, remote machines have to set their TCP MTU size to the payload size of the tunnel, here 1450 instead of 1500.
+    - To avoid configuring MTU manually on every remote machine, the DHCP server on the LAN can instruct them to set their MTU via DHCP option 26. For this the DHCP server must be able to differenciate "regular" clients (MTU 1500) from clients coming out of the tunnel (MTU 1450.)
     - The option of colocating the DHCP server with the tunnel is used here:
        - The DHCP server identifies from which network interface the request comes from and adapt its response, adding DHCP option 26 when necessary
        - Iptables rules are required to block requests from going out of the tunnel bridge interface into the LAN bridge interface, as the server might then reply to the "echo" on the LAN with a regular lease
