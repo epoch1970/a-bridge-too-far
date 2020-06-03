@@ -18,7 +18,7 @@ env_check(){
 	[ -n "${vtep_over:-}" -a -n "${vtep_under:-}" \
 	  -a "${vtep_over:-}" != "${vtep_under:-}" ] || return 1
 	vtep_link="${vtep_link:-_lnk_}"
-	vtep_vx_vni="${vtep_vx_nvi:-314159}"
+	vtep_vx_vni="${vtep_vx_vni:-314159}"
 	vtep_vx_port="${vtep_vx_port:-4789}"
 	vtep_vx_mc_ipv4="${vtep_vx_mc_ipv4:-239.31.41.59}"
 }
