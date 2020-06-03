@@ -1,15 +1,15 @@
 # A Bridge Too Far
-Wifi client to ethernet bridging via multicast vxlan overlay
+Wifi client-side ethernet bridging via multicast vxlan overlay
 
 ## Rationale
- - An AP bridges ethernet network client with wireless clients
+ - An AP bridges ethernet network clients with wireless clients
  - Machines behind a wireless client cannot be bridged unless using WDS or otherwise departing from wireless standards
 
 This setup spans VXLAN Tunnel End Points (VTEP) between wifi clients and a machine on the ethernet LAN, next to (or colocated with) the AP. Enpdoints are bridged with ethernet on each side.
 
 Remote machines behind a wireless client go through the tunnel and are part of the LAN.
 
-The machine configured as bridged VTEP on the ethernet LAN side is called a "hub", machines configured as wireless VTEPs bridged to a local ethernet interface are called "spokes".
+The machine configured as bridged VTEP on the ethernet LAN side is called the "hub", machines configured as wireless VTEPs bridged to a local ethernet interface are called "spokes".
 
 ```
                                          ++ "Hub" RPi ++           ++ "Spoke" RPi ++
