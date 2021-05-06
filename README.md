@@ -5,7 +5,7 @@ Wifi client-side ethernet bridging via multicast vxlan overlay
  - An AP bridges ethernet network clients with wireless clients
  - Machines behind a wireless client cannot be bridged unless using WDS or otherwise departing from wireless standards
 
-This setup spans VXLAN Tunnel End Points (VTEP) between wifi clients and a machine on the ethernet LAN, next to (or colocated with) the AP. Enpdoints are bridged with ethernet on each side.
+This setup spans VXLAN Tunnel End Points (VTEP) between wifi clients and a machine on the ethernet LAN, next to (or colocated with) the AP. Endpoints are bridged with ethernet on each side.
 
 Remote machines behind a wireless client go through the tunnel and are part of the LAN.
 
