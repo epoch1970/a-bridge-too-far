@@ -1,0 +1,41 @@
+# Manages VLAN interfaces
+# Triggered by iface lifecylcle events CARRIER|NOCARRIER/DEPARTED/STOP if 
+# $interface has defined the vlan_ids environment value (in dhcpcd.conf)
+# Additional option interface name (default: <lower>.<vid>)
+# E.g.:
+# interface eth0
+# env vlan_ids=2 314
+# env vlan314_name=vif-blue
+# ...
+#
+# interface eth0.2
+# ...
+
+[ -n "${vlan_ids:-}" ] || return 0
+
+env_check(){
+	vid=$(( ${1:-0} * 1 ))
+	[ "${vid}" -ge 1 -a "${vid}" -le 4096 ] || return 1
+	if="$(eval echo \${vlan${vid}_name:-${interface}.${vid}})"
+	[ -n "${if:-}" ] || return 1
+}
+
+vid_add(){
+	for vid in ${vlan_ids}; do
+		env_check ${vid} || continue
+		[ -e "/sys/class/net/${if}" ] && continue
+		_vif_add type="vlan" if="${if}" lower="${interface}" vid="${vid}"
+	done
+}
+vid_del(){
+	for vid in ${vlan_ids}; do
+		env_check ${vid} || continue
+		[ -e "/sys/class/net/${if}" ] || continue
+		_vif_del if="${if}"
+	done
+}
+
+case "${reason}" in
+	'CARRIER') vid_add ;;
+	'STOP'|'DEPARTED'|'NOCARRIER') vid_del ;;
+esac

@@ -36,6 +36,9 @@ _vif_add(){
 	'veth')
 		ip link add ${if} ${mtu_opt:-} ${macaddr_opt:-} type veth peer name ${if1} ${mtu_opt:-} ${macaddr_opt1:-}
 	;;
+	'vlan')
+		ip link add name ${if} link ${lower} type vlan id ${vid}
+	;;
 	esac
 }
 _macaddr_get(){
